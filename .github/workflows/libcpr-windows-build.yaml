@@ -21,47 +21,51 @@ jobs:
         ref: 1.9.x
         submodules: recursive
 
-    - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v2
-
-    - name: Configure CMake (C++11 + /MT + Static)
+    - name: Setup VCPKG
+      # This action installs vcpkg and sets up the environment
+      uses: lukka/action-vcpkg@v11
+      with:
+        # Crucial: Use the static triplet 'x64-windows-static'. 
+        # This tells vcpkg to build all dependencies (curl, openssl) 
+        # as static libraries and enforces the /MT (Multi-threaded) MSVC runtime flag.
+        vcpkgTriplet: x64-windows-static
+        vcpkgDirectory: ${{ runner.temp }}/vcpkg
+    
+    - name: Install Dependencies (curl, openssl)
+      # Use vcpkg to install the required dependencies
       run: |
+        vcpkg install curl[core,openssl] --host-triplet=x64-windows-static
+    
+    - name: Configure and Build CPR
+      working-directory: ${{ github.workspace }}/cpr-source
+      run: |
+        # Create a build directory
         mkdir build
-        cd build
-        cmake .. -G "Visual Studio 17 2022" -A x64 ^
-          -DCMAKE_INSTALL_PREFIX=../install ^
-          -DBUILD_SHARED_LIBS=OFF ^
-          -DCPR_USE_SYSTEM_CURL=OFF ^
-          -DCPR_ENABLE_SSL=ON ^
-          -DCPR_BUILD_TESTS=OFF ^
-          -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
-          -DCMAKE_CXX_FLAGS_RELEASE="/MT /DCURL_STATICLIB /std:c++11" ^
-          -DCMAKE_C_FLAGS_RELEASE="/MT" ^
-          -DCURL_USE_SCHANNEL=ON ^
-          -DCURL_ZLIB=OFF ^
-          -DUSE_NGHTTP2=OFF ^
-          -DCURL_BROTLI=OFF ^
-          -DCURL_ZSTD=OFF ^
-          -DCURL_USE_LIBPSL=OFF ^
-          -DBUILD_CURL_EXE=OFF
-
-    - name: Build Release
-      run: |
-        cd build
-        cmake --build . --config Release --parallel
-
-    - name: Install & Bundle curl lib
-      run: |
-        cd build
-        cmake --install . --config Release
-        mkdir -p ../install/lib
-        copy Release\libcurl.lib ../install/lib\
-
-    - name: Upload Artifacts
+      
+        # Configure the build using the vcpkg toolchain file to link dependencies correctly.
+        # BUILD_SHARED_LIBS=OFF ensures CPR itself is built as a static library (.lib).
+        cmake -S . -B build `
+          -DCMAKE_TOOLCHAIN_FILE="${{ runner.temp }}/vcpkg/scripts/buildsystems/vcpkg.cmake" `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/cpr-install" `
+          -DBUILD_SHARED_LIBS=OFF `
+          -DCPR_BUILD_TESTS=OFF `
+          -DCPR_BUILD_EXAMPLES=OFF
+          
+        # Build the 'install' target to copy headers and the .lib file to cpr-install
+        cmake --build build --config Release --target install
+    
+    - name: Archive Artifacts (.h and .lib)
+      # Upload the necessary files as an artifact named 'libcpr-windows-static-mt'
       uses: actions/upload-artifact@v4
       with:
-        name: cpr-1.9.x-static-mt-win64
+        name: libcpr-windows-static-mt
         path: |
-          install/include/
-          install/lib/
-        retention-days: 30
+          ${{ github.workspace }}/cpr-install/include/cpr
+          ${{ github.workspace }}/cpr-install/lib/cpr.lib
+        retention-days: 7
+    
+    - name: Output Success Message
+      run: |
+        echo "Successfully built libcpr static library and headers with /MT runtime."
+        echo "Download the artifact 'libcpr-windows-static-mt' for your project."
