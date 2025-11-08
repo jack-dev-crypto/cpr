@@ -67,3 +67,11 @@ jobs:
           } else {
             Write-Host "cpr/build/Release directory does not exist."
           }
+          
+      - name: Upload Static Library Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpr-static-lib-windows-1.9.x
+          path: |
+            build/lib/Release/*.lib
+          if-no-files-found: error
