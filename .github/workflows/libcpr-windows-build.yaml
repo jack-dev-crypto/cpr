@@ -26,6 +26,8 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release `
             -DBUILD_SHARED_LIBS=OFF `
             -DCPR_ENABLE_SSL=ON `
+            -DCPR_FORCE_WINSSL_BACKEND=ON `
+            -DCURL_USE_SCHANNEL=ON `
             -DCPR_BUILD_TESTS=OFF `
             -DCPR_BUILD_TESTS_SSL=OFF `
             -DCPR_BUILD_TESTS_PROXY=OFF `
@@ -48,6 +50,10 @@ jobs:
           Write-Host "=== Contents of build/ directory ==="
           Get-ChildItem -Path build/ -Recurse | 
             Where-Object { $_.Extension -eq '.h' } | 
+            Format-Table Name, Directory
+          Write-Host "=== Contents of build/ directory ==="
+          Get-ChildItem -Path build/ -Recurse | 
+            Where-Object { $_.Extension -eq '.dll' } | 
             Format-Table Name, Directory
           
       - name: Upload Static Library Artifact
