@@ -1,71 +1,48 @@
-name: Build libcpr 1.9.x Static MT (C++11)
+name: Windows Static LIB Build (CPR 1.9.x)
 
 on:
   push:
-    branches: [ 1.9.x ]
+    branches:
+      - '1.9.x'
   pull_request:
-    branches: [ 1.9.x ]
+    branches:
+      - '1.9.x'
   workflow_dispatch:
 
 jobs:
-  build:
+  build_cpr_static_lib:
     runs-on: windows-latest
-    defaults:
-      run:
-        shell: cmd
-
     steps:
-    - name: Checkout 1.9.x with submodules
-      uses: actions/checkout@v4
-      with:
-        ref: 1.9.x
-        submodules: recursive
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: '1.9.x'
+          submodules: recursive
 
-    - name: Setup VCPKG
-      # This action installs vcpkg and sets up the environment
-      uses: lukka/action-vcpkg@v11
-      with:
-        # Crucial: Use the static triplet 'x64-windows-static'. 
-        # This tells vcpkg to build all dependencies (curl, openssl) 
-        # as static libraries and enforces the /MT (Multi-threaded) MSVC runtime flag.
-        vcpkgTriplet: x64-windows-static
-        vcpkgDirectory: ${{ runner.temp }}/vcpkg
-    
-    - name: Install Dependencies (curl, openssl)
-      # Use vcpkg to install the required dependencies
-      run: |
-        vcpkg install curl[core,openssl] --host-triplet=x64-windows-static
-    
-    - name: Configure and Build CPR
-      working-directory: ${{ github.workspace }}/cpr-source
-      run: |
-        # Create a build directory
-        mkdir build
-      
-        # Configure the build using the vcpkg toolchain file to link dependencies correctly.
-        # BUILD_SHARED_LIBS=OFF ensures CPR itself is built as a static library (.lib).
-        cmake -S . -B build `
-          -DCMAKE_TOOLCHAIN_FILE="${{ runner.temp }}/vcpkg/scripts/buildsystems/vcpkg.cmake" `
-          -DCMAKE_BUILD_TYPE=Release `
-          -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/cpr-install" `
-          -DBUILD_SHARED_LIBS=OFF `
-          -DCPR_BUILD_TESTS=OFF `
-          -DCPR_BUILD_EXAMPLES=OFF
-          
-        # Build the 'install' target to copy headers and the .lib file to cpr-install
-        cmake --build build --config Release --target install
-    
-    - name: Archive Artifacts (.h and .lib)
-      # Upload the necessary files as an artifact named 'libcpr-windows-static-mt'
-      uses: actions/upload-artifact@v4
-      with:
-        name: libcpr-windows-static-mt
-        path: |
-          ${{ github.workspace }}/cpr-install/include/cpr
-          ${{ github.workspace }}/cpr-install/lib/cpr.lib
-        retention-days: 7
-    
-    - name: Output Success Message
-      run: |
-        echo "Successfully built libcpr static library and headers with /MT runtime."
-        echo "Download the artifact 'libcpr-windows-static-mt' for your project."
+      - name: Configure CMake for Static LIB (Release)
+        shell: powershell
+        run: |
+          cmake -S . -B build `
+            -G "Ninja" `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DBUILD_SHARED-libs=OFF `
+            -DCPR_ENABLE_SSL=ON `
+            -DCPR_BUILD_TESTS=OFF `
+            -DCPR_BUILD_TESTS_SSL=OFF `
+            -DCPR_BUILD_TESTS_PROXY=OFF `
+            -DCPR_FORCE_USE_SYSTEM_CURL=OFF `
+            -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded"
+
+      - name: Build cpr Library Only
+        shell: powershell
+        run: |
+          cmake --build build --config Release --target cpr
+
+      - name: Upload Static Library Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpr-static-lib-windows-1.9.x
+          path: |
+            build/cpr.lib
+            build/Release/cpr.lib
+          if-no-files-found: error
