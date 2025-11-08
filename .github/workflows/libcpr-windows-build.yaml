@@ -24,13 +24,14 @@ jobs:
         run: |
           cmake -S . -B build `
             -DCMAKE_BUILD_TYPE=Release `
-            -DBUILD_SHARED-libs=OFF `
+            -DBUILD_SHARED_LIBS=OFF `
             -DCPR_ENABLE_SSL=ON `
             -DCPR_BUILD_TESTS=OFF `
             -DCPR_BUILD_TESTS_SSL=OFF `
             -DCPR_BUILD_TESTS_PROXY=OFF `
             -DCPR_FORCE_USE_SYSTEM_CURL=OFF `
-            -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded"
+            -DCURL_STATICLIB=ON `
+            -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded$<$<CONFIG:Debug>:Debug>"
 
       - name: Build cpr Library Only
         shell: powershell
