@@ -38,11 +38,19 @@ jobs:
         run: |
           cmake --build build --config Release --target cpr
 
-      - name: Upload Static Library Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: cpr-static-lib-windows-1.9.x
-          path: |
-            build/cpr.lib
-            build/Release/cpr.lib
-          if-no-files-found: error
+      - name: List Build Directory Contents
+        shell: powershell
+        run: |
+          Write-Host "=== Contents of build/ directory ==="
+          Get-ChildItem -Path build -Recurse -File | 
+            Where-Object { $_.Extension -eq '.lib' } | 
+            Format-Table Name, Directory
+          
+          Write-Host "=== Contents of build/Release/ directory ==="
+          if (Test-Path build/Release) {
+            Get-ChildItem -Path build/Release -Recurse -File | 
+              Where-Object { $_.Extension -eq '.lib' } | 
+              Format-Table Name, Directory
+          } else {
+            Write-Host "build/Release directory does not exist."
+          }
