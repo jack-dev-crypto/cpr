@@ -42,32 +42,13 @@ jobs:
         shell: powershell
         run: |
           Write-Host "=== Contents of build/ directory ==="
-          Get-ChildItem -Path build -Recurse -File | 
+          Get-ChildItem -Path build -Recurse | 
             Where-Object { $_.Extension -eq '.lib' } | 
             Format-Table Name, Directory
-          
-          Write-Host "=== Contents of build/Release/ directory ==="
-          if (Test-Path build/Release) {
-            Get-ChildItem -Path build/Release -Recurse -File | 
-              Where-Object { $_.Extension -eq '.lib' } | 
-              Format-Table Name, Directory
-          } else {
-            Write-Host "build/Release directory does not exist."
-          }
-              
-          Write-Host "=== Contents of cpr/build/ directory ==="
-          Get-ChildItem -Path cpr/build -Recurse -File | 
+          Write-Host "=== Contents of build/lib/Release directory ==="
+          Get-ChildItem -Path build/lib/Release -Recurse | 
             Where-Object { $_.Extension -eq '.lib' } | 
             Format-Table Name, Directory
-          
-          Write-Host "=== Contents of cpr/build/Release/ directory ==="
-          if (Test-Path cpr/build/Release) {
-            Get-ChildItem -Path cpr/build/Release -Recurse -File | 
-              Where-Object { $_.Extension -eq '.lib' } | 
-              Format-Table Name, Directory
-          } else {
-            Write-Host "cpr/build/Release directory does not exist."
-          }
           
       - name: Upload Static Library Artifact
         uses: actions/upload-artifact@v4
