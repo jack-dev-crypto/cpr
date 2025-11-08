@@ -36,7 +36,7 @@ jobs:
       - name: Build cpr Library Only
         shell: powershell
         run: |
-          cmake --build build --config Release --target cpr
+          cmake --build build --config Release
 
       - name: List Build Directory Contents
         shell: powershell
@@ -45,9 +45,9 @@ jobs:
           Get-ChildItem -Path build -Recurse | 
             Where-Object { $_.Extension -eq '.lib' } | 
             Format-Table Name, Directory
-          Write-Host "=== Contents of build/lib/Release directory ==="
-          Get-ChildItem -Path build/lib/Release -Recurse | 
-            Where-Object { $_.Extension -eq '.lib' } | 
+          Write-Host "=== Contents of build/ directory ==="
+          Get-ChildItem -Path build/ -Recurse | 
+            Where-Object { $_.Extension -eq '.h' } | 
             Format-Table Name, Directory
           
       - name: Upload Static Library Artifact
@@ -56,4 +56,5 @@ jobs:
           name: cpr-static-lib-windows-1.9.x
           path: |
             build/lib/Release/*.lib
+            build/cpr_generated_includes/cpr/cprver.h
           if-no-files-found: error
